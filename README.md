@@ -29,8 +29,6 @@ Both profiles clear only bit 0 using a masked write:
 setpci -s <detected-pci-function> 0xa4.b=0:1
 ```
 
-The MacPro5,1 profile matches Julien's Mac Pro running Fedora. The iMac11,2 profile matches his Mid-2010 iMac running Debian.
-
 ## Documented hardware not yet enabled
 
 The following families still require a profile with an exact DMI model, an exact PCI ID, and a verified command before they can be accepted:
