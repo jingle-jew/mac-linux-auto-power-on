@@ -1,8 +1,8 @@
-# Profils matériels
+# Hardware profiles
 
-Chaque fichier `.conf` utilise un format `clé=valeur` simple. Aucun code shell n’est évalué.
+Each `.conf` file uses a simple `key=value` format. No shell code is evaluated.
 
-## Clés obligatoires
+## Required keys
 
 ```text
 profile_id=
@@ -16,21 +16,21 @@ write_value=
 source_note=
 ```
 
-`write_mask=` est également obligatoire lorsque `operation=masked-write` et doit être absent ou vide pour `operation=write`.
+`write_mask=` is also required when `operation=masked-write`, and it must be absent or empty when `operation=write`.
 
-## Contraintes
+## Constraints
 
-- `system_product` doit correspondre exactement à `/sys/class/dmi/id/product_name`, par exemple `MacPro5,1` ou `iMac11,2`;
-- `pci_vendor_device` est l’identifiant PCI exact `vvvv:dddd` en hexadécimal minuscule;
-- `pci_class` est la classe PCI sur quatre chiffres, généralement `0601` pour un pont ISA/LPC;
-- `register` est un registre accepté par `setpci`, par exemple `0xa4.b` ou `0x7b.b`;
-- `operation=masked-write` produit `registre=valeur:masque`;
-- `operation=write` produit `registre=valeur`;
-- un profil ne doit être ajouté qu’après validation documentaire et, idéalement, essai sur le matériel exact;
-- le modèle DMI, l’identifiant PCI et la classe PCI doivent tous correspondre;
-- si plusieurs profils correspondent, l’installation refuse de continuer.
+- `system_product` must exactly match `/sys/class/dmi/id/product_name`, for example `MacPro5,1` or `iMac11,2`;
+- `pci_vendor_device` is the exact PCI identifier `vvvv:dddd` in lowercase hexadecimal;
+- `pci_class` is the four-digit PCI class, usually `0601` for an ISA/LPC bridge;
+- `register` is a register accepted by `setpci`, for example `0xa4.b` or `0x7b.b`;
+- `operation=masked-write` produces `register=value:mask`;
+- `operation=write` produces `register=value`;
+- a profile must only be added after documentation review and, ideally, testing on the exact hardware;
+- the DMI model, PCI identifier, and PCI class must all match;
+- if multiple profiles match, the installer refuses to continue.
 
-## Exemple d’écriture masquée
+## Masked-write example
 
 ```text
 profile_id=apple-example-intel-afterg3
@@ -45,7 +45,7 @@ write_mask=1
 source_note=AFTERG3_EN bit 0 verified from chipset documentation
 ```
 
-## Exemple d’écriture complète
+## Full-write example
 
 ```text
 profile_id=apple-example-nvidia-afterg3
@@ -59,4 +59,4 @@ write_value=0x19
 source_note=Full-byte value verified for this exact controller and Apple model
 ```
 
-Le script valide strictement toutes les valeurs avant de construire la commande `setpci`. Un nom commercial similaire ne suffit jamais pour réutiliser un profil.
+The script strictly validates every value before building the `setpci` command. A similar commercial model name is never sufficient to reuse a profile.
