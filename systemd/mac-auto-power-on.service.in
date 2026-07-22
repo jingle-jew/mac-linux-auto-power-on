@@ -1,0 +1,12 @@
+[Unit]
+Description=Enable automatic startup after power failure on supported Apple hardware
+After=systemd-modules-load.service
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=@SETPCI@ -s @PCI_DEVICE@ @SETPCI_ARGUMENT@
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
