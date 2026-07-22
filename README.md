@@ -1,88 +1,88 @@
 # mac-linux-auto-power-on
 
-Utilitaire prudent pour configurer le redémarrage automatique après une panne de courant sur certains Mac Intel sous Linux avec systemd.
+A cautious utility for configuring automatic startup after a power failure on selected Intel Macs running Linux with systemd.
 
-Le script fonctionne au minimum sur Debian et Fedora. La distribution ne détermine jamais le registre PCI : la sélection repose sur une correspondance exacte entre le modèle DMI Apple, l’identifiant du contrôleur LPC et sa classe PCI.
+The script supports at least Debian and Fedora. The Linux distribution never determines the PCI register: profile selection is based on an exact match between the Apple DMI model, the LPC controller ID, and its PCI class.
 
-## Principes de sécurité
+## Safety principles
 
-- Le mode par défaut est un diagnostic sans écriture.
-- Aucun registre PCI universel n’est supposé.
-- Le modèle Apple et le contrôleur LPC doivent correspondre à un profil exact.
-- Un matériel inconnu provoque un refus sans écriture.
-- Le bus PCI est détecté au lieu d’être codé en dur.
-- L’installation réelle exige `--apply` et la confirmation textuelle `APPLY`.
-- Une erreur de vérification retire le service nouvellement installé.
+- The default mode is a read-only diagnostic.
+- No PCI register is assumed to be universal.
+- The Apple model and LPC controller must match an exact profile.
+- Unknown hardware is rejected without performing any write.
+- The PCI bus address is detected instead of being hard-coded.
+- A real installation requires `--apply` and the exact text confirmation `APPLY`.
+- If verification fails, the newly installed service is removed.
 
-`setpci` écrit directement dans la configuration du chipset. Une mauvaise adresse ou un mauvais registre peut rendre la machine instable. N’ajoutez un profil qu’après vérification dans la documentation du chipset et sur le matériel concerné.
+`setpci` writes directly to the chipset configuration space. An incorrect address or register may make the system unstable. Only add a profile after checking the chipset documentation and validating it on the actual hardware.
 
-## Compatibilité actuelle
+## Current compatibility
 
-| Modèle Apple | Contrôleur LPC | PCI ID | Registre | Opération |
+| Apple model | LPC controller | PCI ID | Register | Operation |
 |---|---|---|---|---|
 | `MacPro5,1` | Intel 82801JIB ICH10 | `8086:3a18` | `0xa4.b` | `0:1` |
 | `iMac11,2` | Intel P55 | `8086:3b02` | `0xa4.b` | `0:1` |
 
-Les deux profils effacent uniquement le bit 0 avec une écriture masquée :
+Both profiles clear only bit 0 using a masked write:
 
 ```bash
-setpci -s <fonction-pci-détectée> 0xa4.b=0:1
+setpci -s <detected-pci-function> 0xa4.b=0:1
 ```
 
-Le profil MacPro5,1 correspond au Mac Pro de Julien sous Fedora. Le profil iMac11,2 correspond à son iMac Mid-2010 sous Debian.
+The MacPro5,1 profile matches Julien's Mac Pro running Fedora. The iMac11,2 profile matches his Mid-2010 iMac running Debian.
 
-## Matériel documenté mais pas encore activé
+## Documented hardware not yet enabled
 
-Les familles suivantes nécessitent encore un profil avec modèle DMI, identifiant PCI exact et commande vérifiée avant d’être acceptées :
+The following families still require a profile with an exact DMI model, an exact PCI ID, and a verified command before they can be accepted:
 
-- Mac mini Early 2006 avec Intel ICH7-M;
-- Mac mini Early 2009 avec NVIDIA MCP79;
-- Mac mini Early 2010 avec NVIDIA MCP89;
-- Mac mini Server 2011 avec Intel HM65;
-- Mac mini MD387LL/A avec Intel Core i5-3210M.
+- Early 2006 Mac mini with Intel ICH7-M;
+- Early 2009 Mac mini with NVIDIA MCP79;
+- Early 2010 Mac mini with NVIDIA MCP89;
+- 2011 Mac mini Server with Intel HM65;
+- Mac mini MD387LL/A with Intel Core i5-3210M.
 
-Les profils NVIDIA peuvent nécessiter une écriture complète différente, par exemple au registre `0x7b.b`; ils ne doivent pas réutiliser automatiquement le profil Intel `0xa4.b`.
+NVIDIA profiles may require a different full-register write, for example at register `0x7b.b`; they must not automatically reuse the Intel `0xa4.b` profile.
 
-## Dépendances
+## Dependencies
 
-### Debian, Ubuntu et dérivés
+### Debian, Ubuntu, and derivatives
 
 ```bash
 sudo apt update
 sudo apt install pciutils
 ```
 
-### Fedora et dérivés RPM
+### Fedora and RPM-based derivatives
 
 ```bash
 sudo dnf install pciutils
 ```
 
-Le système doit utiliser systemd pour l’installation persistante.
+The system must use systemd for persistent installation.
 
-## Afficher les profils
+## List available profiles
 
 ```bash
 ./install.sh --list-profiles
 ```
 
-## Diagnostic sans modification
+## Read-only diagnostic
 
 ```bash
 ./install.sh
 ```
 
-Le diagnostic affiche notamment :
+The diagnostic displays, among other details:
 
-- la distribution Linux;
-- le modèle DMI;
-- le profil retenu;
-- la fonction PCI détectée;
-- l’identifiant matériel;
-- le registre et l’opération;
-- la commande exacte qui serait exécutée.
+- the Linux distribution;
+- the DMI model;
+- the selected profile;
+- the detected PCI function;
+- the hardware identifier;
+- the register and operation;
+- the exact command that would be executed.
 
-Pour imposer une fonction PCI précise tout en conservant toutes les validations du profil :
+To force a specific PCI function while keeping all profile validation checks enabled:
 
 ```bash
 ./install.sh --pci-device 0000:00:1f.0
@@ -94,51 +94,51 @@ Pour imposer une fonction PCI précise tout en conservant toutes les validations
 sudo ./install.sh --apply
 ```
 
-Le script demande ensuite de taper exactement :
+The script then asks you to type exactly:
 
 ```text
 APPLY
 ```
 
-Le service est installé ici :
+The service is installed at:
 
 ```text
 /etc/systemd/system/mac-auto-power-on.service
 ```
 
-## Vérification
+## Verification
 
 ```bash
 systemctl status mac-auto-power-on.service
 ```
 
-Pour les deux profils actuellement inclus :
+For the two profiles currently included:
 
 ```bash
 sudo setpci -v -s 0000:00:1f.0 0xa4.b
 ```
 
-L’adresse PCI affichée par le diagnostic reste la source de vérité; elle ne doit pas être supposée identique sur tous les Mac.
+The PCI address shown by the diagnostic remains the source of truth; it must not be assumed to be identical on every Mac.
 
-Le test final exige une vraie perte d’alimentation alors que le Mac est allumé, suivie du retour du courant.
+The final test requires a real loss of power while the Mac is running, followed by power restoration.
 
-## Désinstallation
+## Uninstallation
 
 ```bash
 sudo ./uninstall.sh
 ```
 
-La désinstallation retire seulement le service systemd. Elle ne force pas le registre PCI dans l’état opposé.
+Uninstallation removes only the systemd service. It does not force the PCI register into the opposite state.
 
-## Ajouter un profil
+## Adding a profile
 
-Consultez `profiles/README.md`. Le format prend en charge :
+See `profiles/README.md`. The format supports:
 
-- `operation=masked-write` pour `registre=valeur:masque`;
-- `operation=write` pour une écriture complète `registre=valeur`.
+- `operation=masked-write` for `register=value:mask`;
+- `operation=write` for a full-register write using `register=value`.
 
-Un profil doit être lié à un modèle DMI et à un identifiant PCI exact. Un nom commercial voisin ou une génération similaire ne suffit pas.
+A profile must be tied to an exact DMI model and an exact PCI ID. A nearby product name or similar generation is not sufficient.
 
-## Licence
+## License
 
-GNU GPL v3.0 ou ultérieure.
+GNU GPL v3.0 or later.
