@@ -13,24 +13,24 @@ usage() {
   cat <<'USAGE'
 Usage: ./install.sh [options]
 
-Sans --apply, le script effectue uniquement un diagnostic.
+Without --apply, the script only performs a diagnostic.
 
 Options:
-  --apply                 Installer et activer le service systemd
-  --yes                   Ne pas demander de taper APPLY
-  --pci-device BDF        Limiter la détection à une fonction PCI précise
-  --list-profiles         Afficher les profils disponibles
-  -h, --help              Afficher cette aide
+  --apply                 Install and enable the systemd service
+  --yes                   Do not prompt for the APPLY confirmation
+  --pci-device BDF        Restrict detection to a specific PCI function
+  --list-profiles         List available hardware profiles
+  -h, --help              Show this help message
 USAGE
 }
 
 fail() {
-  printf 'Erreur: %s\n' "$*" >&2
+  printf 'Error: %s\n' "$*" >&2
   exit 1
 }
 
 warn() {
-  printf 'Avertissement: %s\n' "$*" >&2
+  printf 'Warning: %s\n' "$*" >&2
 }
 
 profile_value() {
@@ -51,7 +51,7 @@ normalize_bdf() {
   elif [[ "$value" =~ ^[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-7]$ ]]; then
     printf '%s\n' "$value"
   else
-    fail "BDF PCI invalide: $1"
+    fail "Invalid PCI BDF: $1"
   fi
 }
 
@@ -69,22 +69,22 @@ validate_profile() {
   WRITE_MASK="$(profile_value "$file" write_mask)"
   SOURCE_NOTE="$(profile_value "$file" source_note)"
 
-  [[ "$PROFILE_ID" =~ ^[a-z0-9][a-z0-9._-]*$ ]] || fail "profile_id invalide dans $file"
-  [[ -n "$DESCRIPTION" && "$DESCRIPTION" != *$'\n'* ]] || fail "description invalide dans $file"
-  [[ "$PROFILE_SYSTEM_PRODUCT" =~ ^[A-Za-z0-9][A-Za-z0-9,._+-]*$ ]] || fail "system_product invalide dans $file"
-  [[ "$PCI_VENDOR_DEVICE" =~ ^[0-9a-f]{4}:[0-9a-f]{4}$ ]] || fail "pci_vendor_device invalide dans $file"
-  [[ "$PCI_CLASS" =~ ^[0-9a-f]{4}$ ]] || fail "pci_class invalide dans $file"
-  [[ "$REGISTER" =~ ^0x[0-9a-f]+\.[bwl]$ ]] || fail "register invalide dans $file"
-  [[ "$OPERATION" == "masked-write" || "$OPERATION" == "write" ]] || fail "operation invalide dans $file"
-  [[ "$WRITE_VALUE" =~ ^(0x)?[0-9a-f]+$ ]] || fail "write_value invalide dans $file"
+  [[ "$PROFILE_ID" =~ ^[a-z0-9][a-z0-9._-]*$ ]] || fail "invalid profile_id in $file"
+  [[ -n "$DESCRIPTION" && "$DESCRIPTION" != *$'\n'* ]] || fail "invalid description in $file"
+  [[ "$PROFILE_SYSTEM_PRODUCT" =~ ^[A-Za-z0-9][A-Za-z0-9,._+-]*$ ]] || fail "invalid system_product in $file"
+  [[ "$PCI_VENDOR_DEVICE" =~ ^[0-9a-f]{4}:[0-9a-f]{4}$ ]] || fail "invalid pci_vendor_device in $file"
+  [[ "$PCI_CLASS" =~ ^[0-9a-f]{4}$ ]] || fail "invalid pci_class in $file"
+  [[ "$REGISTER" =~ ^0x[0-9a-f]+\.[bwl]$ ]] || fail "invalid register in $file"
+  [[ "$OPERATION" == "masked-write" || "$OPERATION" == "write" ]] || fail "invalid operation in $file"
+  [[ "$WRITE_VALUE" =~ ^(0x)?[0-9a-f]+$ ]] || fail "invalid write_value in $file"
 
   if [[ "$OPERATION" == "masked-write" ]]; then
-    [[ "$WRITE_MASK" =~ ^(0x)?[0-9a-f]+$ ]] || fail "write_mask invalide dans $file"
+    [[ "$WRITE_MASK" =~ ^(0x)?[0-9a-f]+$ ]] || fail "invalid write_mask in $file"
   elif [[ -n "$WRITE_MASK" ]]; then
-    fail "write_mask doit être vide pour une opération write dans $file"
+    fail "write_mask must be empty for a write operation in $file"
   fi
 
-  [[ -n "$SOURCE_NOTE" && "$SOURCE_NOTE" != *$'\n'* ]] || fail "source_note invalide dans $file"
+  [[ -n "$SOURCE_NOTE" && "$SOURCE_NOTE" != *$'\n'* ]] || fail "invalid source_note in $file"
 }
 
 list_profiles() {
@@ -116,7 +116,7 @@ package_hint() {
       elif [[ "$like" == *" fedora "* || "$like" == *" rhel "* ]]; then
         printf 'sudo dnf install pciutils\n'
       else
-        printf 'Installez le paquet pciutils avec le gestionnaire de paquets de votre distribution.\n'
+        printf 'Install the pciutils package using the package manager for your distribution.\n'
       fi
       ;;
   esac
@@ -124,7 +124,7 @@ package_hint() {
 
 hex_to_dec() {
   local value="${1#0x}"
-  [[ "$value" =~ ^[0-9A-Fa-f]+$ ]] || fail "valeur hexadécimale invalide: $1"
+  [[ "$value" =~ ^[0-9A-Fa-f]+$ ]] || fail "invalid hexadecimal value: $1"
   printf '%d\n' "$((16#$value))"
 }
 
@@ -138,7 +138,7 @@ while (($#)); do
       ;;
     --pci-device)
       shift
-      (($#)) || fail "--pci-device exige une valeur"
+      (($#)) || fail "--pci-device requires a value"
       PCI_DEVICE_OVERRIDE="$(normalize_bdf "$1")"
       ;;
     --list-profiles)
@@ -150,15 +150,15 @@ while (($#)); do
       exit 0
       ;;
     *)
-      fail "option inconnue: $1"
+      fail "unknown option: $1"
       ;;
   esac
   shift
 done
 
-[[ "$(uname -s)" == "Linux" ]] || fail "ce script fonctionne uniquement sous Linux"
-[[ -d "$PROFILE_DIR" ]] || fail "dossier de profils absent: $PROFILE_DIR"
-[[ -r "$UNIT_TEMPLATE" ]] || fail "modèle systemd absent: $UNIT_TEMPLATE"
+[[ "$(uname -s)" == "Linux" ]] || fail "this script only runs on Linux"
+[[ -d "$PROFILE_DIR" ]] || fail "profile directory not found: $PROFILE_DIR"
+[[ -r "$UNIT_TEMPLATE" ]] || fail "systemd template not found: $UNIT_TEMPLATE"
 
 DISTRO_ID="unknown"
 DISTRO_ID_LIKE=""
@@ -172,17 +172,17 @@ if [[ -r /etc/os-release ]]; then
 fi
 
 command -v lspci >/dev/null 2>&1 || {
-  printf 'Le programme lspci est absent.\nCommande suggérée: ' >&2
+  printf 'The lspci program is missing.\nSuggested command: ' >&2
   package_hint >&2
-  fail "installez pciutils puis relancez le script"
+  fail "install pciutils and run the script again"
 }
 
 SYSTEM_PRODUCT="$(cat /sys/class/dmi/id/product_name 2>/dev/null | tr -d '\000\r\n' || true)"
 SYSTEM_VERSION="$(cat /sys/class/dmi/id/product_version 2>/dev/null | tr -d '\000\r\n' || true)"
-[[ -n "$SYSTEM_PRODUCT" ]] || fail "le modèle DMI est introuvable; aucune écriture PCI ne sera effectuée"
+[[ -n "$SYSTEM_PRODUCT" ]] || fail "the DMI model could not be determined; no PCI write will be performed"
 
 PCI_LIST="$(lspci -Dn)"
-[[ -n "$PCI_LIST" ]] || fail "lspci n’a retourné aucun périphérique"
+[[ -n "$PCI_LIST" ]] || fail "lspci returned no devices"
 
 MATCH_COUNT=0
 MATCH_PROFILE=""
@@ -210,18 +210,18 @@ for profile in "$PROFILE_DIR"/*.conf; do
 done
 
 if (( MATCH_COUNT == 0 )); then
-  printf '\nAucun profil matériel compatible n’a été trouvé.\n' >&2
+  printf '\nNo compatible hardware profile was found.\n' >&2
   printf 'Distribution       : %s\n' "$DISTRO_NAME" >&2
-  printf 'Modèle DMI         : %s\n' "$SYSTEM_PRODUCT" >&2
+  printf 'DMI model          : %s\n' "$SYSTEM_PRODUCT" >&2
   if [[ -n "$PCI_DEVICE_OVERRIDE" ]]; then
-    printf 'Fonction PCI exigée: %s\n' "$PCI_DEVICE_OVERRIDE" >&2
+    printf 'Required PCI device: %s\n' "$PCI_DEVICE_OVERRIDE" >&2
   fi
-  printf 'Contrôleurs ISA/LPC détectés:\n' >&2
+  printf 'Detected ISA/LPC controllers:\n' >&2
   lspci -nn | grep -Ei 'ISA bridge|LPC' >&2 || true
-  fail "aucune écriture PCI n’a été effectuée"
+  fail "no PCI write was performed"
 fi
 
-(( MATCH_COUNT == 1 )) || fail "plusieurs profils correspondent; aucune écriture PCI n’a été effectuée"
+(( MATCH_COUNT == 1 )) || fail "multiple profiles matched; no PCI write was performed"
 
 validate_profile "$MATCH_PROFILE"
 PCI_DEVICE="$(awk '{print $1}' <<<"$MATCH_LINE")"
@@ -237,48 +237,48 @@ fi
 COMMAND_DISPLAY="${SETPCI_PATH:-setpci} -s $PCI_DEVICE $SETPCI_ARGUMENT"
 
 printf '\nDistribution      : %s\n' "$DISTRO_NAME"
-printf 'Modèle DMI       : %s\n' "$SYSTEM_PRODUCT"
-printf 'Version DMI      : %s\n' "${SYSTEM_VERSION:-inconnue}"
-printf 'Profil           : %s\n' "$PROFILE_ID"
+printf 'DMI model        : %s\n' "$SYSTEM_PRODUCT"
+printf 'DMI version      : %s\n' "${SYSTEM_VERSION:-unknown}"
+printf 'Profile          : %s\n' "$PROFILE_ID"
 printf 'Description      : %s\n' "$DESCRIPTION"
-printf 'Fonction PCI     : %s\n' "$PCI_DEVICE"
-printf 'Identifiant PCI  : %s\n' "$PCI_VENDOR_DEVICE"
-printf 'Registre         : %s\n' "$REGISTER"
-printf 'Opération        : %s\n' "$OPERATION"
+printf 'PCI function     : %s\n' "$PCI_DEVICE"
+printf 'PCI identifier   : %s\n' "$PCI_VENDOR_DEVICE"
+printf 'Register         : %s\n' "$REGISTER"
+printf 'Operation        : %s\n' "$OPERATION"
 printf 'Source/validation: %s\n' "$SOURCE_NOTE"
-printf 'Commande prévue  : %s\n\n' "$COMMAND_DISPLAY"
+printf 'Planned command  : %s\n\n' "$COMMAND_DISPLAY"
 
 if [[ -z "$SETPCI_PATH" ]]; then
-  printf 'setpci est absent. Commande suggérée: '
+  printf 'setpci is missing. Suggested command: '
   package_hint
-  (( ! APPLY )) || fail "installez pciutils avant l’installation"
+  (( ! APPLY )) || fail "install pciutils before applying the configuration"
 fi
 
 if [[ -z "$SYSTEMD_PATH" ]]; then
-  warn "systemctl est absent; l’installation du service n’est pas possible"
-  (( ! APPLY )) || fail "systemd est requis pour --apply"
+  warn "systemctl is missing; service installation is not possible"
+  (( ! APPLY )) || fail "systemd is required for --apply"
 fi
 
 if (( ! APPLY )); then
-  printf 'Diagnostic terminé. Aucune modification effectuée.\n'
-  printf 'Pour installer: sudo ./install.sh --apply\n'
+  printf 'Diagnostic complete. No changes were made.\n'
+  printf 'To install: sudo ./install.sh --apply\n'
   exit 0
 fi
 
-(( EUID == 0 )) || fail "--apply doit être exécuté avec sudo"
-[[ -n "$SETPCI_PATH" ]] || fail "setpci est absent"
-[[ -n "$SYSTEMD_PATH" ]] || fail "systemctl est absent"
-[[ -d /run/systemd/system ]] || fail "systemd ne semble pas être le gestionnaire actif de cette machine"
-[[ ! -e "$UNIT_PATH" ]] || fail "$UNIT_PATH existe déjà; désinstallez ou inspectez-le avant de continuer"
+(( EUID == 0 )) || fail "--apply must be run with sudo"
+[[ -n "$SETPCI_PATH" ]] || fail "setpci is missing"
+[[ -n "$SYSTEMD_PATH" ]] || fail "systemctl is missing"
+[[ -d /run/systemd/system ]] || fail "systemd does not appear to be the active service manager on this system"
+[[ ! -e "$UNIT_PATH" ]] || fail "$UNIT_PATH already exists; uninstall or inspect it before continuing"
 
-BEFORE_VALUE="$($SETPCI_PATH -s "$PCI_DEVICE" "$REGISTER")" || fail "lecture du registre impossible"
-printf 'Valeur actuelle du registre: %s\n' "$BEFORE_VALUE"
+BEFORE_VALUE="$($SETPCI_PATH -s "$PCI_DEVICE" "$REGISTER")" || fail "unable to read the register"
+printf 'Current register value: %s\n' "$BEFORE_VALUE"
 
 if (( ! ASSUME_YES )); then
-  printf '\nCette opération va créer %s, activer le service et écrire dans le registre PCI indiqué.\n' "$UNIT_PATH"
-  printf 'Tapez APPLY pour continuer: '
+  printf '\nThis operation will create %s, enable the service, and write to the specified PCI register.\n' "$UNIT_PATH"
+  printf 'Type APPLY to continue: '
   read -r confirmation
-  [[ "$confirmation" == "APPLY" ]] || fail "annulé par l’utilisateur"
+  [[ "$confirmation" == "APPLY" ]] || fail "cancelled by the user"
 fi
 
 TMP_UNIT="$(mktemp)"
@@ -299,10 +299,10 @@ if ! systemctl daemon-reload || ! systemctl enable --now mac-auto-power-on.servi
   systemctl disable --now mac-auto-power-on.service >/dev/null 2>&1 || true
   rm -f "$UNIT_PATH"
   systemctl daemon-reload >/dev/null 2>&1 || true
-  fail "activation échouée; le nouveau service a été retiré"
+  fail "activation failed; the newly installed service was removed"
 fi
 
-AFTER_VALUE="$($SETPCI_PATH -s "$PCI_DEVICE" "$REGISTER")" || fail "service installé, mais relecture du registre impossible"
+AFTER_VALUE="$($SETPCI_PATH -s "$PCI_DEVICE" "$REGISTER")" || fail "the service was installed, but the register could not be read again"
 AFTER_DEC="$(hex_to_dec "$AFTER_VALUE")"
 VALUE_DEC="$(hex_to_dec "$WRITE_VALUE")"
 
@@ -320,14 +320,14 @@ if (( ! VERIFIED )); then
   systemctl disable --now mac-auto-power-on.service >/dev/null 2>&1 || true
   rm -f "$UNIT_PATH"
   systemctl daemon-reload >/dev/null 2>&1 || true
-  warn "la vérification du registre a échoué; le service a été retiré"
-  warn "avant=$BEFORE_VALUE après=$AFTER_VALUE attendu=$WRITE_VALUE masque=${WRITE_MASK:-aucun}"
-  warn "la valeur écrite dans le registre peut rester active jusqu’au prochain cycle d’alimentation"
+  warn "register verification failed; the service was removed"
+  warn "before=$BEFORE_VALUE after=$AFTER_VALUE expected=$WRITE_VALUE mask=${WRITE_MASK:-none}"
+  warn "the value written to the register may remain active until the next power cycle"
   exit 2
 fi
 
-printf '\nInstallation réussie.\n'
-printf 'Valeur avant: %s\n' "$BEFORE_VALUE"
-printf 'Valeur après: %s\n' "$AFTER_VALUE"
+printf '\nInstallation successful.\n'
+printf 'Value before: %s\n' "$BEFORE_VALUE"
+printf 'Value after: %s\n' "$AFTER_VALUE"
 printf 'Service: %s\n' "$UNIT_PATH"
-printf 'Effectuez ensuite un test réel de perte et de retour d’alimentation.\n'
+printf 'Then perform a real power-loss and power-restoration test.\n'

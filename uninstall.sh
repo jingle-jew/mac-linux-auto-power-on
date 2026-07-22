@@ -6,30 +6,30 @@ UNIT_PATH="/etc/systemd/system/$UNIT_NAME"
 ASSUME_YES=0
 
 fail() {
-  printf 'Erreur: %s\n' "$*" >&2
+  printf 'Error: %s\n' "$*" >&2
   exit 1
 }
 
 if [[ "${1:-}" == "--yes" ]]; then
   ASSUME_YES=1
 elif [[ $# -gt 0 ]]; then
-  fail "option inconnue: $1"
+  fail "unknown option: $1"
 fi
 
-(( EUID == 0 )) || fail "la désinstallation doit être exécutée avec sudo"
+(( EUID == 0 )) || fail "uninstallation must be run with sudo"
 
 if [[ ! -e "$UNIT_PATH" ]]; then
-  printf 'Aucun service à retirer: %s\n' "$UNIT_PATH"
+  printf 'No service to remove: %s\n' "$UNIT_PATH"
   exit 0
 fi
 
-printf 'Le service suivant sera désactivé et supprimé: %s\n' "$UNIT_PATH"
-printf 'Le registre PCI ne sera pas remis dans l’état opposé.\n'
+printf 'The following service will be disabled and removed: %s\n' "$UNIT_PATH"
+printf 'The PCI register will not be forced into the opposite state.\n'
 
 if (( ! ASSUME_YES )); then
-  printf 'Tapez REMOVE pour continuer: '
+  printf 'Type REMOVE to continue: '
   read -r confirmation
-  [[ "$confirmation" == "REMOVE" ]] || fail "annulé par l’utilisateur"
+  [[ "$confirmation" == "REMOVE" ]] || fail "cancelled by the user"
 fi
 
 systemctl disable --now "$UNIT_NAME"
@@ -37,4 +37,4 @@ rm -f "$UNIT_PATH"
 systemctl daemon-reload
 systemctl reset-failed "$UNIT_NAME" >/dev/null 2>&1 || true
 
-printf 'Désinstallation terminée.\n'
+printf 'Uninstallation complete.\n'
